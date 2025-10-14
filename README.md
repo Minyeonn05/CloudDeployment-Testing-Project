@@ -1,7 +1,7 @@
 # Simple Login Demo
 
 This project provides an easy-to-understand login example with:
-- **Backend:** `server.js` bootstraps an Express app and delegates auth logic to `src/authService.js`.
+- **Backend:** An Express app with source code in the `src/` directory.
 - **Frontend:** Static HTML, CSS, and JavaScript served from the `public/` directory.
 
 ## Quick start
@@ -15,8 +15,8 @@ The app runs on [http://localhost:3000](http://localhost:3000). The frontend is 
 
 ## Test credentials
 
-- Email: `demo@example.com`
-- Password: `me`
+- Email: `test@email.com`
+- Password: `test123`
 
 ### Validation rules
 - Email/password must be provided and the email must be a valid format.

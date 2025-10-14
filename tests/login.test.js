@@ -21,6 +21,10 @@ async function sendLoginRequest(body) {
   return { response, data };
 }
 
+async function resetServer() {
+  await fetch('http://localhost:3000/api/reset', { method: 'POST' });
+}
+
 async function expectResponse(name, body, status, message) {
   const { response, data } = await sendLoginRequest(body);
   assert.strictEqual(
@@ -37,9 +41,13 @@ async function expectResponse(name, body, status, message) {
 }
 
 async function runTests() {
+
+  // รีเซ็ตสถานะก่อนเริ่มเทสแต่ละชุด
+  await resetServer();
+
   await expectResponse(
     'Login-01 (valid credentials)',
-    { email: 'demo@example.com', password: 'me' },
+    { email: 'test@email.com', password: 'test123' },
     200,
     'Login success'
   );
@@ -71,6 +79,8 @@ async function runTests() {
     401,
     'Wrong password or email'
   );
+
+  await resetServer();
 
   for (let attempt = 1; attempt <= 6; attempt += 1) {
     const expectedStatus = attempt <= 5 ? 401 : 423;

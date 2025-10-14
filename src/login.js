@@ -1,12 +1,17 @@
 const USERS = new Map([
   ['demo@example.com', 'me'],
-  ['sam@example.com', '1234']
-]);
+  ['sam@example.com', '1234'],
+  ['test@email.com', 'test123']]);
 
 const MAX_ATTEMPTS = 5;
 const LOCK_DURATION_MS = 3 * 60 * 1000; // 3 minutes
 
 const attemptState = new Map();
+
+// ฟังก์ชันรีเซ็ตสถานะทั้งหมด ใช้ตอนเทส
+function resetAllAttempts() {
+  attemptState.clear();
+}
 
 function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
@@ -40,7 +45,9 @@ function recordFailure(email) {
   }
 
   attemptState.set(email, entry);
-  return entry.lockedUntil ? entry.lockedUntil > Date.now() : false;
+
+  return isLocked(email);
+  //return entry.lockedUntil ? entry.lockedUntil > Date.now() : false;
 }
 
 function resetFailures(email) {
@@ -60,5 +67,6 @@ module.exports = {
   isLocked,
   recordFailure,
   resetFailures,
-  verifyCredentials
+  verifyCredentials,
+  resetAllAttempts 
 };
