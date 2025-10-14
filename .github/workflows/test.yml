@@ -39,11 +39,11 @@ jobs:
             nc -z 127.0.0.1 $PORT && echo "Server is up" && break
             sleep 1
           done
-
+      # Run Tests 
       - name: Run tests
         run: npm test
 
-      # Always stop server, even if tests failed
+      # Stop server
       - name: Stop server
         if: always()
         run: |
