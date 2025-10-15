@@ -23,7 +23,8 @@ jobs:
           node-version: 18
           cache: npm
 
-      - name: Install deps
+      - name: Install dependencies
+        working-directory: CloudDeployment-Testing-Project
         run: |
           if [ -f package-lock.json ]; then
             npm ci
@@ -31,20 +32,31 @@ jobs:
             npm i
           fi
 
-      # Start server in background
-      - name: Start server
+      - name: Start server in background
+        working-directory: CloudDeployment-Testing-Project
         run: |
           node src/server.js & echo $! > server.pid
           for i in {1..30}; do
             nc -z 127.0.0.1 $PORT && echo "Server is up" && break
             sleep 1
           done
-      # Run Tests 
+
+      - name: Wait for health check
+        working-directory: CloudDeployment-Testing-Project
+        run: |
+          for i in {1..30}; do
+            curl -s http://localhost:$PORT/ | grep -q "Server is healthy" && echo "Health check OK" && break
+            echo "Waiting for server..."
+            sleep 1
+          done
+
       - name: Run tests
+        working-directory: CloudDeployment-Testing-Project
         run: npm test
 
-      # Stop server
       - name: Stop server
         if: always()
+        working-directory: CloudDeployment-Testing-Project
         run: |
           kill $(cat server.pid) || true
+
