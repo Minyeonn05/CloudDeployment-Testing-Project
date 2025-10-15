@@ -1,62 +1,67 @@
 const assert = require('assert');
 
-// ฟังก์ชันจากไฟล์ login.js ที่test
 const {
-  resetAllAttempts,   // รีเซ็ตสถานะการล็อกอินทั้งหมด (จำนวนครั้งที่พลาด)
-  normalizeEmail,     // ทำให้อีเมลเป็นรูปแบบมาตรฐาน (ตัวเล็ก, ตัดช่องว่าง)
-  verifyCredentials,  // ตรวจสอบว่า email/password ถูกต้องไหม
-  recordFailure       // บันทึกจำนวนครั้งที่พลาด และตรวจสอบว่าบัญชีถูกล็อกหรือยัง
+  resetAllAttempts,
+  resetFailures,
+  normalizeEmail,
+  verifyCredentials,
+  recordFailure
 } = require('../src/login');
 
-// ฟังก์ชันช่วยรันเทสต์แต่ละอัน รีเซ็ตสถานะก่อนทุกครั้ง
-function runTest(name, fn) {
-  try {
-    resetAllAttempts(); // เคลียร์ข้อมูลการพยายามล็อกอินก่อนเริ่มเทสต์ใหม่ทุกครั้ง
-    fn(); // เรียกฟังก์ชันทดสอบที่ส่งเข้ามา
-    console.log(`✅ ${name}`); // ถ้าไม่ error แสดงว่าเทสต์ผ่าน
-  } catch (error) {
-
-    console.error(`❌ ${name}: ${error.message}`);
-    process.exitCode = 1; // ตั้งค่า exit code = 1 เพื่อบอกว่ามีเทสต์ไม่ผ่าน
-  }
+// รันเทสแต่ละกรณีให้มีรูปแบบเดียวกัน
+function runTest(name, testFn) {
+  resetAllAttempts(); // ล้างข้อมูลสถานะเก่าก่อนทุกเทส เพื่อไม่ให้ผลค้างกัน
+  console.log(`▶️ เริ่มทดสอบ: ${name}`);
+  testFn(); // เรียกใช้ฟังก์ชันทดสอบที่ส่งเข้ามา
+  console.log(`✅ ผ่านการทดสอบ: ${name}`);
+  console.log('-------------------------');
 }
 
-// 1: กรณีล็อกอินสำเร็จ (ข้อมูลถูกต้อง)
+// 1: ล็อกอินสำเร็จ (ข้อมูลถูกต้อง)
 runTest('Login-01 (valid credentials)', () => {
-  const email = normalizeEmail('test@email.com'); // แปลงอีเมลให้เป็นรูปแบบมาตรฐาน
-  const password = 'test123'; // ใช้รหัสผ่านที่ถูกต้องตาม USERS ใน login.js
+  const email = normalizeEmail('test@email.com'); // แปลงอีเมลให้เป็นตัวเล็กและตัดช่องว่าง
+  const password = 'test123';
 
-  const success = verifyCredentials(email, password); // ตรวจสอบว่าถูกต้องบ่
-  console.log('result:', success);
+  const result = verifyCredentials(email, password);
+  console.log('Result:', result);
 
-  
+  // ต้องได้ค่า true ถ้าข้อมูลถูกต้อง
   assert.strictEqual(
-    success,
+    result,
     true,
-    'Expected login success for valid credentials' 
+    'เข้าสู่ระบบได้เมื่อใช้อีเมลและรหัสผ่านที่ถูกต้อง'
   );
+
+  // รีเซ็ตจำนวนครั้งที่พลาดของอีเมลนี้ (เผื่อมีเทสอื่นใช้ต่อ)
+  resetFailures(email);
 });
 
-//  2: กรณีล็อกอินไม่สำเร็จ (รหัสผ่านผิด)
+// 2: ล็อกอินไม่สำเร็จ 
 runTest('Login-02 (wrong password)', () => {
   const email = normalizeEmail('test@email.com');
-  const password = 'testnaja'; // ตั้งใจพิมพ์รหัสผิด
+  const password = 'testnaja';
 
-  const success = verifyCredentials(email, password); // ตรวจสอบข้อมูล
-  console.log('result:', success); 
+  const result = verifyCredentials(email, password); // ตรวจสอบข้อมูลล็อกอิน
+  console.log('Result:', result);
 
-  // ต้องได้ f 
+  // ต้องเป็น false เมื่อรหัสผิด
   assert.strictEqual(
-    success,
+    result,
     false,
-    'Expected login failure for incorrect password'
+    'ควรเข้าสู่ระบบไม่สำเร็จเมื่อใส่รหัสผ่านผิด'
   );
 
-  // หลังจากพลาด 1 ครั้ง  ระบบควรยังไม่ล็อกบัญชี
+  // บันทึกการพลาด 1 ครั้ง และดูว่าถูกล็อกหรือยัง
   const locked = recordFailure(email);
+  console.log('Locked:', locked); // แสดงผลสถานะล็อก (true/false)
+
+
   assert.strictEqual(
     locked,
     false,
-    'Account should remain unlocked after a single failed attempt'
+    'หลังพลาดครั้งแรกไม่ถูกล็อกบัญชี'
   );
+
+  // รีเซ็ตจำนวนครั้งที่พลาดของอีเมลนี้เพื่อไม่ให้ค้าง
+  resetFailures(email);
 });
