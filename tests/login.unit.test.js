@@ -12,6 +12,7 @@ const {
 } = require('../src/login');
 
 // รันเทสแต่ละกรณีให้มีรูปแบบเดียวกัน
+console.log('Start unit tests:\n');
 function runTest(name, testFn) {
   resetAllAttempts(); // ล้างข้อมูลสถานะเก่าก่อนทุกเทส เพื่อไม่ให้ผลค้างกัน
   console.log(`▶️  Start test ${name}`);

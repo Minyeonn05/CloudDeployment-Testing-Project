@@ -24,6 +24,10 @@ app.use(express.json());
 app.use(express.static('public'));
 app.use(express.static(path.join(__dirname, '../public'))); 
 
+app.get('/health', (req, res) => {
+  res.status(200).json({ message: 'Server is healthy' });
+});
+
 //  Endpoint สำหรับรีเซ็ตสถานะของระบบ (ใช้ตอนเทสต์)
 app.post('/api/reset', (req, res) => {
   resetAllAttempts(); // ล้างข้อมูล
