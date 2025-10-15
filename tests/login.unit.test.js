@@ -1,6 +1,7 @@
 const assert = require('assert');
+
 const {
-  MAX_ATTEMPTS,
+  MAX_ATTEMPTS,LOCK_DURATION_MS,
   normalizeEmail,
   isValidEmail,
   isLocked,
@@ -10,114 +11,136 @@ const {
   resetAllAttempts
 } = require('../src/login');
 
-// Test suite runner
-function describe(suiteName, fn) {
-  console.log(`\n📦 ${suiteName}`);
-  fn();
+// รันเทสแต่ละกรณีให้มีรูปแบบเดียวกัน
+function runTest(name, testFn) {
+  resetAllAttempts(); // ล้างข้อมูลสถานะเก่าก่อนทุกเทส เพื่อไม่ให้ผลค้างกัน
+  console.log(`▶️  Start test ${name}`);
+  testFn(); // เรียกใช้ฟังก์ชันทดสอบที่ส่งเข้ามา
+  console.log(`✅ Test passed: ${name}`);
+  console.log('-------------------------');
 }
 
-function it(testName, fn) {
-  try {
-    fn();
-    console.log(`  ✅ ${testName}`);
-  } catch (error) {
-    console.log(`  ❌ ${testName}`);
-    console.error(`     ${error.message}`);
-    throw error;
+//Login-01: Login ด้วยข้อมูลที่ถูกต้อง
+runTest('Login-01: Valid credentials (success)', () => {
+  const email = normalizeEmail('test@email.com'); // แปลงอีเมลให้เป็นตัวเล็กและตัดช่องว่าง
+  const password = 'test123';
+  const result = verifyCredentials(email, password);
+  console.log('Result:', result);
+
+  // ต้องได้ค่า true ถ้าข้อมูลถูกต้อง
+  assert.strictEqual(
+    result,
+    true,
+    'เข้าสู่ระบบได้เมื่อใช้อีเมลและรหัสผ่านที่ถูกต้อง'
+  );
+
+  // รีเซ็ตจำนวนครั้งที่พลาดของอีเมลนี้ (เผื่อมีเทสอื่นใช้ต่อ)
+  resetFailures(email);
+});
+
+//Login-02 Login ด้วยรหัสผ่านที่ผิด
+runTest('Login-02: Incorrect password (unauthorized)', () => {
+  const email = normalizeEmail('test@email.com');
+  const password = 'testnaja';
+
+  const result = verifyCredentials(email, password); // ตรวจสอบข้อมูลล็อกอิน
+  console.log('Result:', result);
+
+  // ต้องเป็น false เมื่อรหัสผิด
+  assert.strictEqual(
+    result,
+    false,
+    'ควรเข้าสู่ระบบไม่สำเร็จเมื่อใส่รหัสผ่านผิด'
+  );
+
+  // บันทึกการพลาด 1 ครั้ง และดูว่าถูกล็อกหรือยัง
+  const locked = recordFailure(email);
+  console.log('Locked:', locked); // แสดงผลสถานะล็อก (true/false)
+
+
+  assert.strictEqual(
+    locked,
+    false,
+    'หลังพลาดครั้งแรกไม่ถูกล็อกบัญชี'
+  );
+
+  // รีเซ็ตจำนวนครั้งที่พลาดของอีเมลนี้เพื่อไม่ให้ค้าง
+  resetFailures(email);
+});
+
+//Login-03: ล็อคบัญชีหลัง ใส่ข้อมูลlogin ผิดเกิน 5 ครั้ง 
+runTest('Login-03: Account locked after more than 5 failed attempts', () => {
+  const email = 'demo@example.com';
+  const password = 'me';
+  const normalizedEmail = normalizeEmail(email);
+
+  // ทำแบบ Login-03: ล็อคบัญชีโดยพยายาม login ผิดเกิน 5 ครั้ง
+  for (let i = 0; i <= MAX_ATTEMPTS; i++) {
+    recordFailure(normalizedEmail);
   }
-}
+  const locked = recordFailure(email);
+  console.log('Locked:', locked);
+  // ตรวจสอบว่าบัญชีถูกล็อค
+  assert.strictEqual(isLocked(normalizedEmail), true, 'บัญชีควรถูกล็อค');
 
-function beforeEach(fn) {
-  fn();
-}
+  
+  resetFailures(normalizedEmail); // ล้างสถานะพลาดทั้งหมด
+});
 
-// Run all tests
-function runUnitTests() {
-  describe('Login Tests', () => {
-    beforeEach(() => {
-      resetAllAttempts();
-    });
+//Login-04: Login ได้หลังจากบัญชีถูกล็อคครบ 3 นาที
+runTest('Login succeeds after account unlock (3 min passed)', () => {
+  const email = 'demo@example.com';
+  const password = 'me';
+  const normalizedEmail = normalizeEmail(email);
 
-    it('Login-04: Loginได้หลังจากบัญชีถูกล็อคครบ 3 นาที', () => {
-      const email = 'test@naja.com';
-      const password = 'test123';
-      const normalizedEmail = normalizeEmail(email);
-      
-      // ทำแบบ Login-03: ล็อคบัญชีโดยพยายาม login ผิดเกิน 5 ครั้ง
-      for (let i = 0; i <= MAX_ATTEMPTS; i++) {
-        recordFailure(normalizedEmail);
-      }
-      
-      // ตรวจสอบว่าบัญชีถูกล็อค
-      assert.strictEqual(isLocked(normalizedEmail), true, 'บัญชีควรถูกล็อค');
-      
-      // Mock เวลาให้เกิน 3 นาที โดยการตั้ง lockedUntil เป็นเวลาที่ผ่านไปแล้ว
-      const loginModule = require('../src/login');
-      const attemptState = loginModule.attemptState || new Map();
-      const entry = attemptState.get(normalizedEmail);
-      
-      if (entry) {
-        // ตั้งเวลาล็อคให้หมดอายุ (เวลาปัจจุบัน - 1ms = เวลาที่ผ่านไปแล้ว)
-        entry.lockedUntil = Date.now() - 1;
-      }
-      
-      // หลังจากครบ 3 นาที บัญชีควรปลดล็อค
-      assert.strictEqual(isLocked(normalizedEmail), false, 'บัญชีควรปลดล็อคหลังครบ 3 นาที');
-      
-      // ตรวจสอบว่าสามารถ login ด้วย credentials ที่ถูกต้องได้
+  // ทำแบบ Login-03: ล็อคบัญชีโดยพยายาม login ผิดเกิน 5 ครั้ง
+  for (let i = 0; i <= MAX_ATTEMPTS; i++) {
+    recordFailure(normalizedEmail);
+  }
+  let locked = isLocked(email);
+  console.log('Locked after failure:', locked);
+
+  // ตรวจสอบว่าบัญชีถูกล็อค
+  assert.strictEqual(isLocked(normalizedEmail), true, 'บัญชีควรถูกล็อค');
+
+  // ---- จำลองเวลาให้ผ่านเกิน 3 นาที ----
+  const realNow = Date.now;
+  try {
+    const now = realNow();
+    global.Date.now = () => now + LOCK_DURATION_MS + 1; // เดินเวลาเลยหน้าต่างล็อก
+    locked = isLocked(normalizedEmail);
+    console.log('Unlocked after 3 minutes:', locked);
+
+    // หลังจากครบ 3 นาที บัญชีควรปลดล็อค
+    assert.strictEqual(isLocked(normalizedEmail), false, 'บัญชีควรปลดล็อคหลังครบ 3 นาที');
+
+    // ตรวจสอบว่าสามารถ login ด้วย credentials ที่ถูกต้องได้
       // Status 200 OK และ message: "Login success"
-      assert.strictEqual(
-        verifyCredentials(normalizedEmail, password),
-        true,
-        'ควร login สำเร็จด้วย email และ password ที่ถูกต้อง (Status 200, message: "Login success")'
-      );
-    });
+    assert.strictEqual(
+      verifyCredentials(normalizedEmail, password),
+      true,
+      'ควร login สำเร็จหลังปลดล็อค'
+    );
+  } finally {
+    global.Date.now = realNow; // คืนเวลาเดิม
+  }
+  resetFailures(normalizedEmail); // ล้างสถานะพลาดทั้งหมด
+});
 
-    it('Login-05: Login ด้วยอีเมลที่ไม่มีอยู่ในระบบ', () => {
-      const email = 'test@eiei.com';
-      const password = 'test123';
-      const normalizedEmail = normalizeEmail(email);
-      
-      // ตรวจสอบว่า email format ถูกต้อง
-      assert.strictEqual(
-        isValidEmail(normalizedEmail),
-        true,
-        'Email format ควรถูกต้อง'
-      );
-      
-      // ตรวจสอบว่าบัญชีไม่ถูกล็อค
-      assert.strictEqual(
-        isLocked(normalizedEmail),
-        false,
-        'บัญชีไม่ควรถูกล็อค'
-      );
-      
-      // พยายาม login ด้วยอีเมลที่ไม่มีในระบบ
-      // Status 401 Unauthorized และ message: "Wrong password or email"
-      assert.strictEqual(
-        verifyCredentials(normalizedEmail, password),
-        false,
-        'ควรล้มเหลวเพราะอีเมลไม่มีในระบบ (Status 401, message: "Wrong password or email")'
-      );
-      
-      // บันทึกความล้มเหลว
-      const nowLocked = recordFailure(normalizedEmail);
-      
-      // ควรยังไม่ถูกล็อคหลังจากพยายามครั้งแรก
-      assert.strictEqual(
-        nowLocked,
-        false,
-        'บัญชีไม่ควรถูกล็อคหลังจากความล้มเหลวครั้งแรก'
-      );
-    });
-  });
-}
+//Login-05: Login ด้วยอีเมลที่ไม่มีอยู่ในระบบ
+runTest('Login-05: Non-existent email (email not found)', () => {
+  const email = normalizeEmail('test@eiei.com');
+  const password = 'any';
 
-// Run the test suite
-try {
-  runUnitTests();
-  console.log('\n✅ All unit tests passed!\n');
-} catch (error) {
-  console.error('\n❌ Unit test suite failed\n');
-  process.exit(1);
-}
+  assert.strictEqual(isValidEmail(email), true, 'รูปแบบอีเมลต้องถูกต้อง');
+  assert.strictEqual(isLocked(email), false, 'บัญชีไม่ควรถูกล็อก');
+
+  const hasEmail = verifyCredentials(email, password);
+  assert.strictEqual(hasEmail, false, 'อีเมลไม่มีในระบบต้องไม่ผ่าน');
+  console.log('Email found:', hasEmail);
+
+  const nowLocked = recordFailure(email);
+  assert.strictEqual(nowLocked, false, 'พลาดครั้งแรกยังไม่ล็อก');
+  resetFailures(email);
+});
+
