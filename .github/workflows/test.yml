@@ -1,4 +1,4 @@
-name: test
+name: Node Login Test
 
 on:
   push:
@@ -16,8 +16,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          path: ./CloudDeployment-Testing-Project
 
       - name: Setup Node.js (v18)
         uses: actions/setup-node@v4
@@ -32,33 +30,28 @@ jobs:
           else
             npm i
           fi
-        working-directory: ./CloudDeployment-Testing-Project
 
-      - name: Start server in background
+      - name: Start server
         run: |
           node src/server.js & echo $! > server.pid
           for i in {1..30}; do
             nc -z 127.0.0.1 $PORT && echo "Server is up" && break
             sleep 1
           done
-        working-directory: ./CloudDeployment-Testing-Project
 
       - name: Health check
         run: |
           for i in {1..30}; do
-            curl -s http://localhost:$PORT/ | grep -q "Server is healthy" && echo "💚 Health check OK" && break
+            curl -s http://localhost:$PORT/ | grep -q "Server is healthy" && echo "Health check OK" && break
             echo "Waiting for server..."
             sleep 1
           done
-        working-directory: ./CloudDeployment-Testing-Project
 
       - name: Run tests
         run: npm test
-        working-directory: ./CloudDeployment-Testing-Project
 
       - name: Stop server
         if: always()
         run: |
           kill $(cat server.pid) || true
-        working-directory: ./CloudDeployment-Testing-Project
 
