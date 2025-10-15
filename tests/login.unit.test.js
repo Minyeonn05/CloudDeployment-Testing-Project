@@ -144,3 +144,47 @@ runTest('Login-05: Non-existent email (email not found)', () => {
   resetFailures(email);
 });
 
+//Login-06: กรอกข้อมูลไม่ครบ (อีเมล/รหัสผ่านว่าง)
+runTest('Login-06: Missing fields (empty email & password)', () => {
+  const emailRaw = '   ';              // ช่องว่างล้วน
+  const password = '';                 // ว่าง
+  const email = normalizeEmail(emailRaw);
+
+  // normalize แล้วต้องเป็นสตริงว่าง และอีเมลไม่ผ่านรูปแบบ
+  assert.strictEqual(email, '', 'normalizeEmail ควรตัดช่องว่างจนเหลือ "" ');
+  assert.strictEqual(isValidEmail(email), false, 'อีเมลว่างต้องไม่ผ่านรูปแบบ');
+
+  // ใส่คู่นี้ต้องล็อกอินไม่ผ่านแน่นอน
+  const ok = verifyCredentials(email, password);
+  assert.strictEqual(ok, false, 'ข้อมูลไม่ครบต้องไม่สามารถล็อกอินได้');
+
+  // พลาดครั้งแรกยังไม่ถูกล็อก
+  const locked = recordFailure(email);
+  assert.strictEqual(locked, false, 'พลาดครั้งแรกไม่ควรถูกล็อก');
+
+  // เคลียร์สถานะ
+  resetFailures(email);
+});
+
+//Login-07: รูปแบบอีเมลไม่ถูกต้อง
+runTest('Login-07: Invalid email format', () => {
+  const emailRaw = 'testnaja.com';     // ไม่มีเครื่องหมาย @
+  const password = 'test123';
+  const email = normalizeEmail(emailRaw);
+
+  // รูปแบบอีเมลต้องไม่ผ่าน
+  assert.strictEqual(isValidEmail(email), false, 'อีเมลที่ไม่มี @ ต้องไม่ผ่านรูปแบบ');
+
+  // ตรวจสอบว่าการยืนยันตัวตนล้มเหลว
+  const ok = verifyCredentials(email, password);
+  assert.strictEqual(ok, false, 'อีเมลผิดรูปแบบต้องล็อกอินไม่สำเร็จ');
+
+  // บันทึกความล้มเหลว 1 ครั้ง แต่ยังไม่ล็อก
+  const locked = recordFailure(email);
+  assert.strictEqual(locked, false, 'พลาดครั้งแรกไม่ควรถูกล็อก');
+
+  // เคลียร์สถานะ
+  resetFailures(email);
+});
+
+
