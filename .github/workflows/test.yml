@@ -1,4 +1,4 @@
-name: test
+name: Node Login Test
 
 on:
   push:
@@ -17,7 +17,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          path: .
+          path: .   
 
       - name: Setup Node.js (v18)
         uses: actions/setup-node@v4
@@ -41,10 +41,10 @@ jobs:
             sleep 1
           done
 
-      - name: Wait for health check
+      - name: Health check
         run: |
           for i in {1..30}; do
-            curl -s http://localhost:$PORT/ | grep -q "Server is healthy" && echo "Health check OK" && break
+            curl -s http://localhost:$PORT/ | grep -q "Server is healthy" && echo "💚 Health check OK" && break
             echo "Waiting for server..."
             sleep 1
           done
@@ -56,4 +56,3 @@ jobs:
         if: always()
         run: |
           kill $(cat server.pid) || true
-
