@@ -30,8 +30,8 @@ jobs:
           else
             npm i
           fi
-        working-directory: ./CloudDeployment-Testing-Project
 
+      # Start server in background
       - name: Start server
         run: |
           node src/server.js & echo $! > server.pid
@@ -39,14 +39,12 @@ jobs:
             nc -z 127.0.0.1 $PORT && echo "Server is up" && break
             sleep 1
           done
-        working-directory: ./CloudDeployment-Testing-Project
 
       - name: Run tests
         run: npm test
-        working-directory: ./CloudDeployment-Testing-Project
 
+      # Always stop server, even if tests failed
       - name: Stop server
         if: always()
         run: |
           kill $(cat server.pid) || true
-        working-directory: ./CloudDeployment-Testing-Project
