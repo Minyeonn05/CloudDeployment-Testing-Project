@@ -59,27 +59,14 @@ npm test
 Test table
 
 Unit Tests
-ID	ชื่อเคส	วัตถุประสงค์	เงื่อนไข / อินพุต	ผลลัพธ์ที่คาดหวัง
-Login-01	ข้อมูลถูกต้อง (Success)	ตรวจสอบล็อกอินปกติ	verifyCredentials('test@email.com','test123')	คืนค่า true
-Login-02	รหัสผ่านผิด	ปฏิเสธเมื่อรหัสผิด	verifyCredentials('test@email.com','wrong')	คืนค่า false (ยังไม่ล็อก)
-Login-03	ล็อกหลังใส่ผิด >5 ครั้ง	ล็อกบัญชีอัตโนมัติ	เรียก recordFailure(email) 6 ครั้ง	isLocked(email) === true
-Login-04	ปลดล็อกหลัง 3 นาที	ปลดล็อกเมื่อเวลาครบ	เดินเวลา Date.now() เกิน LOCK_DURATION_MS	isLocked(email) === false, ล็อกอินสำเร็จ
-Login-05	อีเมลไม่มีในระบบ	ปฏิเสธเมื่อไม่พบผู้ใช้	verifyCredentials('test@eiei.com','any')	คืนค่า false
-Login-06	กรอกไม่ครบ	อีเมล/รหัสว่าง	verifyCredentials('','')	คืนค่า false
-Login-07	อีเมลรูปแบบผิด	ไม่มี @	verifyCredentials('testnaja.com','1234')	คืนค่า false
+<img width="1154" height="596" alt="image" src="https://github.com/user-attachments/assets/73a2f66e-5e25-4067-8aa7-da94dd8d6beb" />
+
 
 ทุกเคสจะ รีเซ็ตสถานะ ก่อนรัน เพื่อกันผลค้างจากเคสอื่น
 
 Integration Tests
-ID	ชื่อเคส	เส้นทาง	ตัวอย่างอินพุต	สถานะที่คาดหวัง	ข้อความที่คาดหวัง
-Login-00	ตรวจสุขภาพเซิร์ฟเวอร์	GET /health	—	200	"Server is healthy"
-Login-01	ล็อกอินถูกต้อง	POST /api/login	{ "email":"test@email.com","password":"test123" }	200	"Login success"
-Login-02	ขาดอีเมล	POST /api/login	{ "email":"", "password":"me" }	400	"Email and password are required"
-Login-03	ขาดรหัสผ่าน	POST /api/login	{ "email":"demo@example.com", "password":"" }	400	"Email and password are required"
-Login-04	อีเมลผิดรูปแบบ	POST /api/login	{ "email":"demo", "password":"me" }	400	"Invalid email format"
-Login-05	รหัสผ่านผิด	POST /api/login	{ "email":"sam@example.com", "password":"wrong" }	401	"Wrong password or email"
-Login-06	ล็อกหลังพลาด 5 ครั้ง	POST /api/login × 6	ยิงผิด 5 ครั้งแรก + เช็คครั้งที่ 6	423	"Account temporarily locked"
-Login-07	ถูกล็อกแม้รหัสถูก	POST /api/login	{ "email":"sam@example.com", "password":"1234" }	423	"Account temporarily locked"
+<img width="1041" height="589" alt="image" src="https://github.com/user-attachments/assets/62d164bc-b40e-4d03-af37-4dc225c9c927" />
+
 
 Github Action
 - test รัน test cases ทั้งหมด
